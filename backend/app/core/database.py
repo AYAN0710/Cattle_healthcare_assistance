@@ -8,6 +8,7 @@ predictions_collection=db['predictions']
 users_collection=db['users']
 medicine_collection=db['medicine_records']
 reports_collection=db['health_reports']
+otp_collection=db['otp_verification']
 
 def check_db_connection():
     try:

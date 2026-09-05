@@ -5,3 +5,6 @@ Pillow
 tensorflow
 numpy
 pymongo
+pwdlib[argon2]
+PyJWT
+email-validator
