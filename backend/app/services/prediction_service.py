@@ -1,8 +1,9 @@
 from datetime import datetime,timezone
 from app.core.database import predictions_collection
 
-def save_cow_prediction(disease:str,confidence:float):
+def save_cow_prediction(user_id:str,disease:str,confidence:float):
     prediction_document={
+        'user_id':user_id,
         'animal_type':'cow',
         'prediction_module':'cnn',
         'disease':disease,

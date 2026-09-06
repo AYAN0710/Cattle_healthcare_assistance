@@ -1,9 +1,10 @@
 import random
 from datetime import datetime,timedelta,timezone
-from fastapi import APIRouter,HTTPException,status
+from fastapi import APIRouter,HTTPException,status,Depends
 from app.core.database import users_collection,otp_collection
 from app.core.security import hash_password,verify_password,create_access_token
 from app.schemas.auth import UserLogin,UserRegister,TokenResponse
+from fastapi.security import OAuth2PasswordRequestForm
 
 router=APIRouter(prefix='/auth',tags=['Authentication'])
 
@@ -85,8 +86,11 @@ def verify_email(email: str, otp: str):
 
 
 @router.post('/login',response_model=TokenResponse)
-def login_user(user:UserLogin):
-    existing_user=users_collection.find_one({'email':user.email})
+def login_user(form_data: OAuth2PasswordRequestForm=Depends()):
+    email=form_data.username
+    password=form_data.password
+    
+    existing_user=users_collection.find_one({'email':email})
     if not existing_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -98,7 +102,7 @@ def login_user(user:UserLogin):
             detail='Please verify your email before logging in.'
         )
     
-    if not verify_password(user.password,existing_user['password']):
+    if not verify_password(password,existing_user['password']):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Invalid email or password.'
@@ -110,3 +114,33 @@ def login_user(user:UserLogin):
         'token_type':'bearer'
     }
     
+
+@router.post('/resend-otp')
+def resend_otp(email:str):
+    user=users_collection.find_one({'email':email})
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail='User not found.'
+        )
+    
+    if user.get('is_verified',False):
+        raise HTTPException(
+            status_code=400,
+            detail='Email is already verified.'
+        )
+    
+    otp_collection.delete_many({'email':email})
+    
+    otp=str(random.randint(100000,999999))
+    
+    otp_document={
+        'email':email,
+        'otp':otp,
+        'expires_at':(datetime.now(timezone.utc) + timedelta(minutes=10))
+    }
+    otp_collection._insert_one(otp_document)
+    print(f"New OTP for {email}:{otp}")
+    return {
+        'message':'A new OTP has been generated.'
+    }
