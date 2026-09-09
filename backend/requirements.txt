@@ -15,3 +15,6 @@ langchain-qdrant
 sentence-transformers
 qdrant-client
 langchain-huggingface
+tavily-python
+python-dotenv
+duckduckgo-search
