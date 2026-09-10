@@ -1,6 +1,6 @@
 from app.rag.retriever import retrieve_knowledge
 
-question='What are the symptoms of lumpy skin disease?'
+question='What are the symptoms of foot and mouth disease?'
 
 documents=retrieve_knowledge(question)
 
