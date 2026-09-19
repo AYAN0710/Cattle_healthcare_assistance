@@ -6,6 +6,7 @@ from app.api.auth import router as auth_router
 from app.api.prediction_history import router as prediction_history_router
 from contextlib import asynccontextmanager
 from app.api.health_guidance import router as health_guidance_router
+from app.api.health_report import router as health_report_router
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
@@ -41,6 +42,7 @@ app.include_router(cow_prediction_router)
 app.include_router(auth_router)
 app.include_router(prediction_history_router)
 app.include_router(health_guidance_router)
+app.include_router(health_report_router)
 
 @app.get('/')
 def check_health():

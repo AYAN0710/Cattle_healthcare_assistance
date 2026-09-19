@@ -33,6 +33,9 @@ Return your response in exactly this JSON structure:
 
 {{
     "guidance": "Clear answer based on the provided context",
+    'key_symptoms':['Extract the key clinical symptoms relevant to the predicted disease from the provided context.
+Do not invent symptoms that are not supported by the context.
+Return the symptoms as a list of short strings.']
     "precautions": [
         "Precaution supported by the context"
     ],
