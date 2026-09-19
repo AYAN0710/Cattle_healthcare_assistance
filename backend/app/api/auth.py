@@ -5,8 +5,19 @@ from app.core.database import users_collection,otp_collection
 from app.core.security import hash_password,verify_password,create_access_token
 from app.schemas.auth import UserLogin,UserRegister,TokenResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from app.core.dependencies import get_current_user
 
 router=APIRouter(prefix='/auth',tags=['Authentication'])
+
+@router.get('/me')
+def get_me(current_user=Depends(get_current_user)):
+    return {
+        'id': str(current_user['_id']),
+        'name': current_user.get('name', ''),
+        'email': current_user.get('email', ''),
+        'is_verified': current_user.get('is_verified', False)
+    }
+
 
 @router.post('/register')
 def register_user(user:UserRegister):

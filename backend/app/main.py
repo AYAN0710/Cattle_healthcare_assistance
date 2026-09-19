@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.api.cow_prediction import router as cow_prediction_router
 from app.core.database import check_db_connection
 from app.api.auth import router as auth_router
@@ -19,6 +20,14 @@ app=FastAPI(title='Cattle Health AI',
             description='AI-based cattle disease prediction and health assistance system',
             version='1.0.0',
             lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # @app.on_event('startup')
 # def startup_event():

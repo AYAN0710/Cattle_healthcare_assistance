@@ -21,7 +21,6 @@ def retrieve_from_qdrant(state:HealthState):
 def check_qdrant_results(state: HealthState):
     question = state["question"].lower()
 
-    # Current/recent questions should use web search
     web_keywords = [
         "latest",
         "recent",
@@ -36,21 +35,26 @@ def check_qdrant_results(state: HealthState):
     ]
 
     if any(keyword in question for keyword in web_keywords):
+        print("AGENT ROUTE: WEB SEARCH")
         return "web"
 
-    # Otherwise use the local veterinary knowledge base
     if state["qdrant_results"]:
+        print("AGENT ROUTE: QDRANT")
         return "qdrant"
 
+    print("AGENT ROUTE: WEB SEARCH")
     return "web"
 
-def search_web_fallback(state:HealthState):
-    results=search_web(
-        state['question'],max_results=3
+def search_web_fallback(state: HealthState):
+    print("\nAGENT ROUTE: WEB SEARCH")
+
+    results = search_web(
+        state["question"],
+        max_results=3
     )
-    return {
-        'web_results':results
-    }
+    print(f"WEB RESULTS FOUND: {len(results)}")
+
+    return { "web_results": results}
     
 def build_qdrant_context(state:HealthState):
     context='\n\n'.join(document.page_content for document in state['qdrant_results'])
@@ -58,17 +62,19 @@ def build_qdrant_context(state:HealthState):
         'context':context
     }
     
-def build_web_context(state:HealthState):
-    context_parts=[]
-    for result in state['web_results']:
+def build_web_context(state: HealthState):
+    context_parts = []
+
+    for result in state["web_results"]:
         context_parts.append(
             f"Title: {result['title']}\n"
             f"URL: {result['url']}\n"
             f"Content: {result['content']}"
         )
-    return {
-        'context':'\n\n'.join(context_parts)
-    }
+    context = "\n\n".join(context_parts)
+    print("\nWEB CONTEXT CREATED")
+    print(context[:1000])
+    return {"context": context}
     
 def generate_answer(state: HealthState):
     # Generate the response from Gemini
