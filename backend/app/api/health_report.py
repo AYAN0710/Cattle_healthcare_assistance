@@ -6,6 +6,7 @@ from app.agents.report_agent import generate_health_report
 from app.core.dependencies import get_current_user
 from app.agents.health_agent import health_graph
 from app.services.report_service import save_health_report
+from app.core.database import reports_collection
 
 router=APIRouter(prefix='/health-report',tags=['Health Report'])
 
@@ -57,3 +58,13 @@ def generate_report(request:HealthReportRequest,current_user=Depends(get_current
         'report_id':report_id,
         **report
     }
+    
+@router.get('/history')
+def get_report_history(current_user=Depends(get_current_user)):
+    reports=list(reports_collection.find({
+        'user_id':str(current_user['_id'])
+    }).sort('created_at',-1))
+    for report in reports:
+        report['report_id']=str(report['_id'])
+        del report['_id']
+    return reports
