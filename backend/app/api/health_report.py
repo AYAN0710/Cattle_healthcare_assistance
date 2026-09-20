@@ -5,6 +5,7 @@ from app.core.database import predictions_collection
 from app.agents.report_agent import generate_health_report
 from app.core.dependencies import get_current_user
 from app.agents.health_agent import health_graph
+from app.services.report_service import save_health_report
 
 router=APIRouter(prefix='/health-report',tags=['Health Report'])
 
@@ -30,8 +31,11 @@ def generate_report(request:HealthReportRequest,current_user=Depends(get_current
         )
     
     health_result = health_graph.invoke({
-    "question": f"Provide health guidance for {prediction['disease']}."
-    })
+    "question": (
+        f"Provide health guidance for {prediction['disease']}."
+    ),
+    "predicted_disease": prediction["disease"]
+})
 
     health_answer = health_result["answer"]
 
@@ -43,4 +47,13 @@ def generate_report(request:HealthReportRequest,current_user=Depends(get_current
     precautions=health_answer["precautions"],
     veterinarian_advice=health_answer["veterinarian_advice"]
 )
-    return report
+    report_id=save_health_report(
+        user_id=str(current_user['_id']),
+        prediction_id=request.prediction_id,
+        report=report
+    )
+    
+    return {
+        'report_id':report_id,
+        **report
+    }

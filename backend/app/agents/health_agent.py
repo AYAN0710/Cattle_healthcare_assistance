@@ -11,9 +11,16 @@ class HealthState(TypedDict):
     web_results:List
     context:str
     answer:dict
+    predicted_disease: str
     
 def retrieve_from_qdrant(state:HealthState):
-    documents=retrieve_knowledge(state['question'])
+    
+    # print("\n===== HEALTH AGENT INPUT =====")
+    # print("QUESTION:", state["question"])
+    # print("PREDICTED DISEASE:", state["predicted_disease"])
+    # print("==============================\n")
+    
+    documents=retrieve_knowledge(state['question'],state['predicted_disease'])
     return {
         'qdrant_results':documents
     }
@@ -80,7 +87,8 @@ def generate_answer(state: HealthState):
     # Generate the response from Gemini
     raw_answer = generate_health_response(
         question=state["question"],
-        context=state["context"]
+        context=state["context"],
+        predicted_disease=state["predicted_disease"]
     )
 
     try:

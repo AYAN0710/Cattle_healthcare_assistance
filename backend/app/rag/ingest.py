@@ -7,11 +7,27 @@ from app.core.rag_config import (
     KNOWLEDGE_BASE_PATH,QDRANT_COLLECTION_NAME,QDRANT_PATH,EMBEDDING_MODEL_NAME,CHUNK_OVERLAP,CHUNK_SIZE
 )
 
+def get_disease_from_filename(file_path:Path):
+    filename=file_path.stem.lower()
+    disease_mapping={
+        'lumpy_skin_disease':'lumpy',
+        'foot_and_mouth_disease':'foot-and-mouth',
+        'healthy_cow':'healthy'
+    }
+    return disease_mapping.get(filename,'unknown')
+
 def ingest_documents():
     documents=[]
     for file_path in Path(KNOWLEDGE_BASE_PATH).rglob('*.txt'):
         loader=TextLoader(str(file_path),encoding='utf-8')
-        documents.extend(loader.load())
+        
+        loaded_documents=loader.load()
+        disease=get_disease_from_filename(file_path)
+        for document in loaded_documents:
+            document.metadata['disease']=disease
+            document.metadata['source_file']=file_path.name
+        documents.extend(loaded_documents)
+        
     if not documents:
         print("No knowledge documents found.")
         return
