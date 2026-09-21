@@ -68,3 +68,24 @@ def get_report_history(current_user=Depends(get_current_user)):
         report['report_id']=str(report['_id'])
         del report['_id']
     return reports
+
+@router.get('/{report_id}')
+def get_health_report(report_id:str,current_user=Depends(get_current_user)):
+    if not ObjectId.is_valid(report_id):
+        raise HTTPException(
+            status_code=400,
+            detail='Invalid report ID'
+        )
+    report=reports_collection.find_one({
+        '_id':ObjectId(report_id),
+        'user_id':str(current_user['_id'])
+    })
+    if not report:
+        raise HTTPException(
+            status_code=404,
+            detail='Health report not found.'
+        )
+    report['report_id']=str(report['_id'])
+    del report['_id']
+    return report
+    
