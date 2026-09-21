@@ -7,6 +7,8 @@ from app.core.dependencies import get_current_user
 from app.agents.health_agent import health_graph
 from app.services.report_service import save_health_report
 from app.core.database import reports_collection
+from fastapi.responses import StreamingResponse
+from app.services.pdf_service import generate_health_report_pdf
 
 router=APIRouter(prefix='/health-report',tags=['Health Report'])
 
@@ -89,3 +91,35 @@ def get_health_report(report_id:str,current_user=Depends(get_current_user)):
     del report['_id']
     return report
     
+@router.get("/{report_id}/pdf")
+def download_health_report_pdf(
+    report_id: str,
+    current_user=Depends(get_current_user)
+):
+    if not ObjectId.is_valid(report_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid report ID"
+        )
+
+    report = reports_collection.find_one({
+        "_id": ObjectId(report_id),
+        "user_id": str(current_user["_id"])
+    })
+
+    if not report:
+        raise HTTPException(
+            status_code=404,
+            detail="Health report not found."
+        )
+
+    pdf_buffer = generate_health_report_pdf(report)
+
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition":
+                f'attachment; filename="health_report_{report_id}.pdf"'
+        }
+    )

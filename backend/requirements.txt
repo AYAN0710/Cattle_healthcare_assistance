@@ -19,3 +19,4 @@ tavily-python
 python-dotenv
 duckduckgo-search
 google-genai
+reportlab
