@@ -17,6 +17,7 @@ def get_prediction_history(current_user=Depends(get_current_user)):
             "prediction_module": prediction["prediction_module"],
             "disease": prediction["disease"],
             "confidence": prediction["confidence"],
+            "input_data": prediction.get("input_data"),
             "created_at": prediction["created_at"]
         })
     return {
@@ -47,5 +48,6 @@ def get_prediction(prediction_id:str,current_user=Depends(get_current_user)):
         "prediction_module": prediction["prediction_module"],
         "disease": prediction["disease"],
         "confidence": prediction["confidence"],
+        "input_data": prediction.get("input_data"),
         "created_at": prediction["created_at"]
     }

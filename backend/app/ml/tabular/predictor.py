@@ -8,8 +8,8 @@ CLASSES_PATH=TABULAR_MODEL_PATH.parent/'classes.json'
 
 model=joblib.load(TABULAR_MODEL_PATH)
 
-with open(CLASSES_PATH,'r',encoding='utf-8') as file:
-    classes=json.load(file)
+# with open(CLASSES_PATH,'r',encoding='utf-8') as file:
+#     classes=json.load(file)
 
 def predict_disease(data: dict) -> dict:
     # Match the exact feature names used during training
