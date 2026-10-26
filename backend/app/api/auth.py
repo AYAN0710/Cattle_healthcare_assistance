@@ -1,4 +1,4 @@
-import random
+import secrets
 from datetime import datetime,timedelta,timezone
 from fastapi import APIRouter,HTTPException,status,Depends
 from app.core.database import users_collection,otp_collection
@@ -6,6 +6,7 @@ from app.core.security import hash_password,verify_password,create_access_token
 from app.schemas.auth import UserLogin,UserRegister,TokenResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from app.core.dependencies import get_current_user
+from app.services.email_service import send_otp_email
 
 router=APIRouter(prefix='/auth',tags=['Authentication'])
 
@@ -37,14 +38,25 @@ def register_user(user:UserRegister):
     }
     result=users_collection.insert_one(user_document)
     
-    otp=str(random.randint(100000, 999999))
-    otp_document={
-        'email':user.email,
-        'otp':otp,
-        'expires_at':datetime.now(timezone.utc)+timedelta(minutes=10)
-    }
-    otp_collection.insert_one(otp_document)
-    print(f"OTP for {user.email}:{otp}")
+    otp = str(secrets.randbelow(900000) + 100000)
+
+    otp_document = {
+    "email": user.email,
+    "otp": otp,
+    "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10)
+}
+
+    otp_result = otp_collection.insert_one(otp_document)
+
+    try:
+        send_otp_email(user.email, otp)
+    except Exception:
+        otp_collection.delete_one({"_id": otp_result.inserted_id})
+        users_collection.delete_one({"_id": result.inserted_id})
+        raise HTTPException(
+        status_code=503,
+        detail="Unable to send verification email. Please try again."
+    )
     
     return {
         "message": "User registered successfully.Please verify your email using OTP.",
@@ -143,15 +155,24 @@ def resend_otp(email:str):
     
     otp_collection.delete_many({'email':email})
     
-    otp=str(random.randint(100000,999999))
-    
-    otp_document={
-        'email':email,
-        'otp':otp,
-        'expires_at':(datetime.now(timezone.utc) + timedelta(minutes=10))
-    }
-    otp_collection._insert_one(otp_document)
-    print(f"New OTP for {email}:{otp}")
+    otp = str(secrets.randbelow(900000) + 100000)
+
+    otp_document = {
+    "email": email,
+    "otp": otp,
+    "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10)
+}
+
+    otp_result = otp_collection.insert_one(otp_document)
+
+    try:
+        send_otp_email(email, otp)
+    except Exception:
+        otp_collection.delete_one({"_id": otp_result.inserted_id})
+        raise HTTPException(
+        status_code=503,
+        detail="Unable to send verification email. Please try again."
+    )
     return {
         'message':'A new OTP has been generated.'
     }
