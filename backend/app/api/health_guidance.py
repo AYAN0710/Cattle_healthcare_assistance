@@ -40,7 +40,8 @@ def get_health_guidance(request:HealthGuidanceRequest,current_user=Depends(get_c
         "qdrant_results": [],
         "web_results": [],
         "context": "",
-        "answer": {}
+        "answer": {},
+        "predicted_disease": prediction["disease"]
     })
     
     answer=result['answer']

@@ -24,6 +24,8 @@ IMPORTANT DISEASE CONSTRAINT:
 - Do not transfer symptoms from another disease.
 - Do not transfer precautions from another disease.
 - Do not transfer treatments or veterinary advice from another disease.
+-IF THE QUESTION IS NOT RELATABLE , STRICYLY SAY NOT IN CONTEXT.
+
 
 The context may come from:
 1. A trusted veterinary knowledge base
