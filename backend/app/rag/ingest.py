@@ -1,56 +1,115 @@
+
+import os
 from pathlib import Path
-from langchain_community.document_loaders import TextLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from dotenv import load_dotenv
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_qdrant import QdrantVectorStore
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
+from qdrant_client import QdrantClient
+
 from app.core.rag_config import (
-    KNOWLEDGE_BASE_PATH,QDRANT_COLLECTION_NAME,QDRANT_PATH,EMBEDDING_MODEL_NAME,CHUNK_OVERLAP,CHUNK_SIZE
+    KNOWLEDGE_BASE_PATH,
+    QDRANT_COLLECTION_NAME,
+    EMBEDDING_MODEL_NAME,
+    CHUNK_SIZE,
+    CHUNK_OVERLAP,
 )
 
-def get_disease_from_filename(file_path: Path):
-    filename = file_path.stem.lower()
+load_dotenv()
 
-    disease_mapping = {
-        "lumpy_skin_disease": "lumpy",
-        "foot_and_mouth_disease": "foot-and-mouth",
-        "healthy_cow": "healthy",
-        "blackleg": "blackleg",
-        "anthrax": "anthrax",
-        "pneumonia": "pneumonia"
-    }
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 
-    return disease_mapping.get(filename, "unknown")
+if not QDRANT_URL or not QDRANT_API_KEY:
+    raise RuntimeError(
+        "QDRANT_URL and QDRANT_API_KEY must be configured."
+    )
+
+DISEASE_MAPPING = {
+    "lumpy_skin_disease.txt": "lumpy_skin",
+    "foot_and_mouth_disease.txt": "foot_and_mouth",
+    "healthy_cow.txt": "healthy",
+    "blackleg.txt": "blackleg",
+    "anthrax.txt": "anthrax",
+    "pneumonia.txt": "pneumonia",
+}
+
 
 def ingest_documents():
-    documents=[]
-    for file_path in Path(KNOWLEDGE_BASE_PATH).rglob('*.txt'):
-        loader=TextLoader(str(file_path),encoding='utf-8')
-        
-        loaded_documents=loader.load()
-        disease=get_disease_from_filename(file_path)
-        for document in loaded_documents:
-            document.metadata['disease']=disease
-            document.metadata['source_file']=file_path.name
-        documents.extend(loaded_documents)
-        
+    knowledge_path = Path(KNOWLEDGE_BASE_PATH)
+
+    if not knowledge_path.exists():
+        raise FileNotFoundError(
+            f"Knowledge base directory not found: {knowledge_path}"
+        )
+
+    documents = []
+
+    for file_path in knowledge_path.glob("*.txt"):
+        text = file_path.read_text(encoding="utf-8").strip()
+
+        if not text:
+            continue
+
+        disease = DISEASE_MAPPING.get(file_path.name)
+
+        if not disease:
+            print(f"Skipping unmapped file: {file_path.name}")
+            continue
+
+        documents.append(
+            Document(
+                page_content=text,
+                metadata={
+                    "disease": disease,
+                    "source": file_path.name,
+                },
+            )
+        )
+
     if not documents:
-        print("No knowledge documents found.")
-        return
-    print(f'Loaded {len(documents)} documents.')
-    
-    text_splitter=RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE,chunk_overlap=CHUNK_OVERLAP)
-    chunks=text_splitter.split_documents(documents)
-    print(f'Created {len(chunks)} chunks.')
-    
-    embeddings=HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
-    
-    QdrantVectorStore.from_documents(
-        documents=chunks,
-        embedding=embeddings,
-        path=QDRANT_PATH,
-        collection_name=QDRANT_COLLECTION_NAME
+        raise ValueError("No mapped, non-empty knowledge files found.")
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
     )
-    print( f"Successfully indexed {len(chunks)} chunks "f"into Qdrant.")
-        
+    chunks = splitter.split_documents(documents)
+
+    embeddings = HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL_NAME
+    )
+
+    client = QdrantClient(
+        url=QDRANT_URL,
+        api_key=QDRANT_API_KEY,
+        timeout=60,
+    )
+
+    try:
+        if client.collection_exists(QDRANT_COLLECTION_NAME):
+            raise RuntimeError(
+                f"Collection '{QDRANT_COLLECTION_NAME}' already exists. "
+                "Not overwriting existing cloud data."
+            )
+
+        QdrantVectorStore.from_documents(
+            documents=chunks,
+            embedding=embeddings,
+            url=QDRANT_URL,
+            api_key=QDRANT_API_KEY,
+            collection_name=QDRANT_COLLECTION_NAME,
+            force_recreate=False,
+        )
+
+        print(
+            f"Successfully uploaded {len(chunks)} chunks "
+            f"from {len(documents)} files to Qdrant Cloud."
+        )
+    finally:
+        client.close()
+
+
 if __name__ == "__main__":
     ingest_documents()

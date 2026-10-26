@@ -1,59 +1,58 @@
+
+import os
+from dotenv import load_dotenv
 from langchain_huggingface import HuggingFaceEmbeddings
-from qdrant_client import QdrantClient
 from langchain_qdrant import QdrantVectorStore
-from app.core.rag_config import QDRANT_PATH,QDRANT_COLLECTION_NAME,EMBEDDING_MODEL_NAME
+from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 
-embeddings=HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
-
-client=QdrantClient(path=QDRANT_PATH)
-
-vector_store=QdrantVectorStore(
-    client=client,
-    collection_name=QDRANT_COLLECTION_NAME,
-    embedding=embeddings
+from app.core.rag_config import (
+    QDRANT_COLLECTION_NAME,
+    EMBEDDING_MODEL_NAME,
 )
 
-# points = client.scroll(
-#     collection_name=QDRANT_COLLECTION_NAME,
-#     limit=10,
-#     with_payload=True
-# )
+load_dotenv()
 
-# print("\n===== QDRANT PAYLOADS =====")
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 
-# for point in points[0]:
-#     print(point.payload)
+if not QDRANT_URL or not QDRANT_API_KEY:
+    raise RuntimeError(
+        "QDRANT_URL and QDRANT_API_KEY must be configured."
+    )
 
-# print("===========================\n")
+embeddings = HuggingFaceEmbeddings(
+    model_name=EMBEDDING_MODEL_NAME
+)
+
+client = QdrantClient(
+    url=QDRANT_URL,
+    api_key=QDRANT_API_KEY,
+    timeout=30,
+)
+
+vector_store = QdrantVectorStore(
+    client=client,
+    collection_name=QDRANT_COLLECTION_NAME,
+    embedding=embeddings,
+)
 
 
-def retrieve_knowledge(question:str,disease: str|None=None):
-    search_kwargs={'k':10}
+def retrieve_knowledge(question: str, disease: str | None = None):
+    search_kwargs = {"k": 10}
+
     if disease:
-        search_kwargs['filter']=Filter(
+        search_kwargs["filter"] = Filter(
             must=[
                 FieldCondition(
-                    key='metadata.disease',
-                    match=MatchValue(value=disease)
+                    key="metadata.disease",
+                    match=MatchValue(value=disease),
                 )
             ]
         )
-    retriever=vector_store.as_retriever(search_kwargs=search_kwargs)
-    documents=retriever.invoke(question)
-    
-    
 
-    # print("\n===== QDRANT RESULTS =====")
+    retriever = vector_store.as_retriever(
+        search_kwargs=search_kwargs
+    )
 
-    # for i, document in enumerate(documents):
-    #     print(f"\n--- RESULT {i + 1} ---")
-    #     print("DISEASE:", document.metadata.get("disease"))
-    #     print("SOURCE:", document.metadata.get("source_file"))
-    #     print(document.page_content[:500])
-
-    # print("\n==========================\n")
-
-    return documents
-    
-    
+    return retriever.invoke(question)

@@ -20,3 +20,8 @@ python-dotenv
 duckduckgo-search
 google-genai
 reportlab
+scikit-learn
+joblib
+pandas
+langgraph
+langchain
