@@ -1,9 +1,25 @@
+# import os
+# from pymongo import MongoClient
+
+# MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+
+# client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
+# db = client["Livestock_health"]
+
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from pymongo import MongoClient
 
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
-client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
+MONGO_URL = os.getenv("MONGO_URL")
+
+client = MongoClient(
+    MONGO_URL,
+    serverSelectionTimeoutMS=5000
+)
+
 db = client["Livestock_health"]
 
 predictions_collection=db['predictions']
