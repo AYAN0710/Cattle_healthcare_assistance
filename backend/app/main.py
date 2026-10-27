@@ -28,7 +28,9 @@ app=FastAPI(title='Cattle Health AI',
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://YOUR-VERCEL-DOMAIN.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
