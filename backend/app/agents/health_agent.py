@@ -92,21 +92,26 @@ def generate_answer(state: HealthState):
     )
 
     try:
-        # Remove Markdown code fences if Gemini returns ```json ... ```
         cleaned_answer = raw_answer.strip()
 
+        # Remove Markdown code fences if Gemini returns ```json ... ```
         if cleaned_answer.startswith("```"):
-            cleaned_answer = cleaned_answer.replace("```json", "", 1)
-            cleaned_answer = cleaned_answer.replace("```", "", 1)
-            cleaned_answer = cleaned_answer.strip()
+            parts = cleaned_answer.split("```")
+            # Find the JSON part (skip the language tag like 'json')
+            for part in parts:
+                stripped = part.strip()
+                if stripped.startswith("json"):
+                    stripped = stripped[4:].strip()
+                if stripped.startswith("{"):
+                    cleaned_answer = stripped
+                    break
 
-        # Convert JSON text into a Python dictionary
         answer = json.loads(cleaned_answer)
 
     except (json.JSONDecodeError, TypeError):
-        # Keep a safe fallback if Gemini returns invalid JSON
         answer = {
             "guidance": raw_answer,
+            "key_symptoms": [],
             "precautions": [],
             "veterinarian_advice": (
                 "The available information should be reviewed "

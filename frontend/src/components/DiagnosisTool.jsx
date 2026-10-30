@@ -88,7 +88,13 @@ export default function DiagnosisTool({ onOpenAuth, showToast }) {
       }
     } catch (err) {
       console.error(err);
-      showToast(err.message || 'Error executing disease prediction', 'error');
+      const errMsg = err.message || 'Error executing disease prediction';
+      // Friendly message for non-cattle image (422 status)
+      if (errMsg.toLowerCase().includes('cattle') || errMsg.toLowerCase().includes('confident')) {
+        showToast('⚠️ Not a cattle image! Please upload a clear photo of cattle.', 'error');
+      } else {
+        showToast(errMsg, 'error');
+      }
     } finally {
       setLoadingPrediction(false);
     }
@@ -275,9 +281,24 @@ export default function DiagnosisTool({ onOpenAuth, showToast }) {
                     <Stethoscope size={18} />
                     <span>AI Health Guidance & Overview</span>
                   </div>
-                  <p style={{ fontSize: '0.92rem', color: '#334155', lineHeight: 1.6, marginBottom: '20px' }}>
+                  <p style={{ fontSize: '0.92rem', color: '#334155', lineHeight: 1.7, marginBottom: '20px' }}>
                     {guidanceResult.guidance || 'No specific guidance provided.'}
                   </p>
+
+                  {/* Key Symptoms */}
+                  {guidanceResult.key_symptoms && guidanceResult.key_symptoms.length > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
+                      <div className="guidance-section-title" style={{ color: '#92400E' }}>
+                        <AlertCircle size={18} />
+                        <span>Key Symptoms to Watch For</span>
+                      </div>
+                      <ul style={{ fontSize: '0.9rem', color: '#78350F', lineHeight: 1.8, background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '12px 12px 12px 32px', marginTop: '8px' }}>
+                        {guidanceResult.key_symptoms.map((symptom, i) => (
+                          <li key={i}>{symptom}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   {guidanceResult.precautions && guidanceResult.precautions.length > 0 && (
                     <div style={{ marginBottom: '20px' }}>
@@ -285,7 +306,7 @@ export default function DiagnosisTool({ onOpenAuth, showToast }) {
                         <CheckCircle size={18} />
                         <span>Recommended Precautions & Steps</span>
                       </div>
-                      <ul style={{ paddingLeft: '20px', fontSize: '0.9rem', color: '#475569', lineHeight: 1.7 }}>
+                      <ul style={{ fontSize: '0.9rem', color: '#14532D', lineHeight: 1.8, background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px', padding: '12px 12px 12px 32px', marginTop: '8px' }}>
                         {guidanceResult.precautions.map((prec, i) => (
                           <li key={i}>{prec}</li>
                         ))}
@@ -294,12 +315,12 @@ export default function DiagnosisTool({ onOpenAuth, showToast }) {
                   )}
 
                   {guidanceResult.veterinarian_advice && (
-                    <div style={{ background: '#F0FDF4', padding: '16px', borderRadius: '12px', border: '1px solid #BBF7D0' }}>
-                      <div className="guidance-section-title" style={{ color: '#166534' }}>
+                    <div style={{ background: '#EFF6FF', padding: '16px', borderRadius: '12px', border: '1px solid #BFDBFE' }}>
+                      <div className="guidance-section-title" style={{ color: '#1E40AF' }}>
                         <Stethoscope size={18} />
                         <span>Veterinarian Recommendation</span>
                       </div>
-                      <p style={{ fontSize: '0.9rem', color: '#14532D', lineHeight: 1.5 }}>
+                      <p style={{ fontSize: '0.9rem', color: '#1E3A8A', lineHeight: 1.6 }}>
                         {guidanceResult.veterinarian_advice}
                       </p>
                     </div>

@@ -9,8 +9,15 @@ from app.api.health_guidance import router as health_guidance_router
 from app.api.health_report import router as health_report_router
 from app.api.tabular_prediction import router as tabular_prediction_router
 
+import os
 import warnings
 warnings.filterwarnings('ignore')
+
+# Limit TensorFlow memory usage for deployment on memory-constrained servers (e.g. Render free tier 512MB)
+os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '3')       # suppress TF logs
+os.environ.setdefault('OMP_NUM_THREADS', '1')             # limit OpenMP threads
+os.environ.setdefault('TF_NUM_INTRAOP_THREADS', '1')      # limit intra-op parallelism
+os.environ.setdefault('TF_NUM_INTEROP_THREADS', '1')      # limit inter-op parallelism
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):

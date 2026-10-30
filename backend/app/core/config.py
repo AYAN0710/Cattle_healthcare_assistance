@@ -10,6 +10,6 @@ CNN_CLASSES_PATH=BASE_DIR/"app"/"ml"/"cow_cnn"/"classes.json"
 
 IMAGE_SIZE=(224,224)
 
-CONFIDENCE_THRESHOLD=0.50
+CONFIDENCE_THRESHOLD=0.60
 
 TABULAR_MODEL_PATH = BASE_DIR / "app" / "ml" / "tabular" / "cow_tabular_model.joblib"

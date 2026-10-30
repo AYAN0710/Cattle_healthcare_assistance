@@ -95,7 +95,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;
-  width: min(96%, 980px);
+  width: min(96%, 1200px);
 }
 
 .nav-pill {

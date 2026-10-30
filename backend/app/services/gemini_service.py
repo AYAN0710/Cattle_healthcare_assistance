@@ -1,82 +1,47 @@
 from app.core.llm_config import gemini_client, GEMINI_MODEL
+import json
 
 
 def generate_health_response(
     question: str,
     context: str,
     predicted_disease: str
-):
+) -> str:
 
-    prompt = f"""
-You are a livestock health information assistant.
+    disease_display = predicted_disease.replace("-", " ").replace("_", " ").title()
 
-Your task is to provide health information ONLY about the
-predicted disease.
+    prompt = f"""You are an expert livestock veterinary health assistant for cattle farmers.
 
-PREDICTED DISEASE:
-{predicted_disease}
+PREDICTED DISEASE: {predicted_disease} ({disease_display})
 
-IMPORTANT DISEASE CONSTRAINT:
-- The predicted disease is the primary constraint.
-- Use ONLY information relevant to {predicted_disease}.
-- Do NOT mix information from other diseases.
-- Ignore retrieved context that clearly belongs to another disease.
-- Do not transfer symptoms from another disease.
-- Do not transfer precautions from another disease.
-- Do not transfer treatments or veterinary advice from another disease.
--IF THE QUESTION IS NOT RELATABLE , STRICYLY SAY NOT IN CONTEXT.
+STRICT RULES:
+- Answer ONLY about "{predicted_disease}" disease. Do NOT mix information from other diseases.
+- Base your response ONLY on the provided RETRIEVED CONTEXT below.
+- Do NOT invent symptoms, treatments, medicines, dosages, or statistics.
+- If the question is completely unrelated to cattle health or {predicted_disease}, set guidance to: "This question is not related to {disease_display} in cattle. Please ask about the detected condition."
+- If context is insufficient, clearly say so instead of guessing.
 
-
-The context may come from:
-1. A trusted veterinary knowledge base
-2. Recent web search results
-
-Use only information supported by the retrieved context.
-
-Do not invent:
-- Symptoms
-- Treatments
-- Medicines
-- Dosages
-- Disease outbreaks
-- News events
-- Veterinary recommendations
-
-For current or recent information, clearly indicate that
-the information is based on the available web search results.
-
-KEY SYMPTOMS:
-Extract only clinical symptoms that are explicitly supported
-by the context AND relevant to the predicted disease.
-
-If the context does not contain reliable disease-specific
-symptoms, return an empty list.
-
-PRECAUTIONS:
-Extract only precautions supported by the context and
-relevant to the predicted disease.
-
-If the context does not contain enough information,
-say that the available information is insufficient.
-
-Return ONLY valid JSON in exactly this structure:
-
-{{
-    "guidance": "Clear answer based on the provided context",
-    "key_symptoms": [
-        "Disease-specific symptom"
-    ],
-    "precautions": [
-        "Disease-specific precaution"
-    ],
-    "veterinarian_advice": "Veterinary advice supported by the context"
-}}
-
-USER QUESTION:
-{question}
+USER QUESTION: {question}
 
 RETRIEVED CONTEXT:
-{context}
+{context if context.strip() else "No specific context was retrieved. Provide general well-known facts about " + predicted_disease + " in cattle only."}
+
+Based on the above, provide a thorough, farmer-friendly response. Return ONLY valid JSON (no markdown, no code fences) in EXACTLY this structure:
+
+{{
+    "guidance": "A clear, detailed 2-4 sentence overview of {disease_display} answering the user's question. Be specific and practical.",
+    "key_symptoms": [
+        "Specific symptom 1 relevant to {predicted_disease}",
+        "Specific symptom 2",
+        "Specific symptom 3"
+    ],
+    "precautions": [
+        "Actionable precaution or management step 1",
+        "Actionable precaution or management step 2",
+        "Actionable precaution or management step 3"
+    ],
+    "veterinarian_advice": "Specific advice on when and why a farmer should urgently call a vet for {disease_display}. Be direct and practical."
+}}
 """
 
     response = gemini_client.models.generate_content(
@@ -84,4 +49,24 @@ RETRIEVED CONTEXT:
         contents=prompt
     )
 
-    return response.text
+    raw = response.text.strip()
+
+    # Strip markdown code fences if present
+    if raw.startswith("```"):
+        raw = raw.split("```", 2)[-1] if raw.count("```") >= 2 else raw
+        raw = raw.replace("```json", "").replace("```", "").strip()
+
+    # Validate it's parseable JSON before returning
+    try:
+        json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        # Return a safe structured fallback as JSON string
+        fallback = {
+            "guidance": raw if raw else f"Information about {disease_display} could not be retrieved at this time.",
+            "key_symptoms": [],
+            "precautions": [],
+            "veterinarian_advice": "Please consult a qualified veterinarian for professional advice on this condition."
+        }
+        return json.dumps(fallback)
+
+    return raw

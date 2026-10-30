@@ -44,11 +44,12 @@ def get_health_guidance(request:HealthGuidanceRequest,current_user=Depends(get_c
         "predicted_disease": prediction["disease"]
     })
     
-    answer=result['answer']
+    answer = result['answer']
     return {
-         "disease": prediction["disease"],
+        "disease": prediction["disease"],
         "confidence": prediction["confidence"],
         "guidance": answer.get("guidance", ""),
+        "key_symptoms": answer.get("key_symptoms", []),
         "precautions": answer.get("precautions", []),
         "veterinarian_advice": answer.get("veterinarian_advice", "")
-    }
+    }
