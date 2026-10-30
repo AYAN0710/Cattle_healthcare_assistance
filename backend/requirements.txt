@@ -17,7 +17,7 @@ qdrant-client
 langchain-huggingface
 tavily-python
 python-dotenv
-duckduckgo-search
+ddgs
 google-genai
 reportlab
 scikit-learn==1.6.1
