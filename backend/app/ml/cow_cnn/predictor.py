@@ -1,21 +1,30 @@
 import json
 import numpy as np
-import tensorflow as tf
 from PIL import Image
 from app.core.config import CNN_CLASSES_PATH, CNN_MODEL_PATH, IMAGE_SIZE, CONFIDENCE_THRESHOLD
 
-# Prevent TF from pre-allocating all memory (important on memory-constrained servers)
-gpus = tf.config.list_physical_devices('GPU')
-if gpus:
-    for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
+# Lazy singletons — loaded only on first prediction request to keep startup
+# memory well below Render free-tier's 512 MB limit.
+_model = None
+_classes = None
 
-model = tf.keras.models.load_model(CNN_MODEL_PATH)
-with open(CNN_CLASSES_PATH, "r") as file:
-    classes = json.load(file)
+
+def _get_model():
+    global _model, _classes
+    if _model is None:
+        import tensorflow as tf  # deferred import — TF alone costs ~200 MB
+        # Prevent TF from pre-allocating all GPU memory
+        gpus = tf.config.list_physical_devices('GPU')
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        _model = tf.keras.models.load_model(CNN_MODEL_PATH)
+        with open(CNN_CLASSES_PATH, "r") as file:
+            _classes = json.load(file)
+    return _model, _classes
 
 
 def predict_disease(image: Image.Image):
+    model, classes = _get_model()
     image = image.resize(IMAGE_SIZE)
     image = image.convert("RGB")
     image_array = np.array(image, dtype=np.float32)

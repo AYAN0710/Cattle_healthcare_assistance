@@ -4,14 +4,20 @@ import json
 
 from app.core.config import TABULAR_MODEL_PATH
 
-CLASSES_PATH=TABULAR_MODEL_PATH.parent/'classes.json'
+CLASSES_PATH = TABULAR_MODEL_PATH.parent / 'classes.json'
 
-model=joblib.load(TABULAR_MODEL_PATH)
+# Lazy singleton — loaded only on first request
+_model = None
 
-# with open(CLASSES_PATH,'r',encoding='utf-8') as file:
-#     classes=json.load(file)
+
+def _get_model():
+    global _model
+    if _model is None:
+        _model = joblib.load(TABULAR_MODEL_PATH)
+    return _model
 
 def predict_disease(data: dict) -> dict:
+    model = _get_model()
     # Match the exact feature names used during training
     input_df = pd.DataFrame([{
         "Age": data["age"],

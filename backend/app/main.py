@@ -1,23 +1,31 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from app.api.cow_prediction import router as cow_prediction_router
-from app.core.database import check_db_connection
-from app.api.auth import router as auth_router
-from app.api.prediction_history import router as prediction_history_router
-from contextlib import asynccontextmanager
-from app.api.health_guidance import router as health_guidance_router
-from app.api.health_report import router as health_report_router
-from app.api.tabular_prediction import router as tabular_prediction_router
-
 import os
 import warnings
-warnings.filterwarnings('ignore')
 
-# Limit TensorFlow memory usage for deployment on memory-constrained servers (e.g. Render free tier 512MB)
+# ── Memory optimisations ─────────────────────────────────────────────────────
+# These MUST be set before any TensorFlow / keras import happens.
+# TF is lazy-loaded (first prediction request), so setting them here is safe.
 os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '3')       # suppress TF logs
 os.environ.setdefault('OMP_NUM_THREADS', '1')             # limit OpenMP threads
 os.environ.setdefault('TF_NUM_INTRAOP_THREADS', '1')      # limit intra-op parallelism
 os.environ.setdefault('TF_NUM_INTEROP_THREADS', '1')      # limit inter-op parallelism
+# Disable oneDNN custom ops to reduce memory footprint
+os.environ.setdefault('TF_ENABLE_ONEDNN_OPTS', '0')
+# Stop TF from pre-allocating the entire GPU memory
+os.environ.setdefault('TF_FORCE_GPU_ALLOW_GROWTH', 'true')
+
+warnings.filterwarnings('ignore')
+# ─────────────────────────────────────────────────────────────────────────────
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from app.core.database import check_db_connection
+from app.api.cow_prediction import router as cow_prediction_router
+from app.api.auth import router as auth_router
+from app.api.prediction_history import router as prediction_history_router
+from app.api.health_guidance import router as health_guidance_router
+from app.api.health_report import router as health_report_router
+from app.api.tabular_prediction import router as tabular_prediction_router
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
